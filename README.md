@@ -1,251 +1,146 @@
 # SafeLab Platform API
 
-Spring Boot backend for the SafeLab Web Application.
+**Backend académico de SafeLab**, sistema multiempresa para supervisión de cadena de frío clínica, sensores IoT, mantenimiento, alertas, cumplimiento ambiental y auditoría. Comparte los 12 Bounded Contexts y los IDs de datos simulados de **SafeLab Web** y **SafeLab Mobile**.
 
-This version is prepared for **Render + PostgreSQL** and keeps the current frontend `db.json` structure as persistent JSON collections in a relational table named `stored_documents`. This lets the frontend migrate quickly from local mock data to a real backend while keeping all 12 bounded contexts connected through one API.
+## Versión v1.0.0 — JSON Server
 
-## Stack
+Esta versión **no utiliza PostgreSQL, MySQL, H2 ni Docker**. Spring Boot expone la API REST, valida requests y permisos, y consulta datos de un **JSON Server local**, independiente de los frontends. Web/Mobile **no están conectados** en esta etapa.
 
-- Java 21
-- Spring Boot 3.4
-- Spring Web
-- Spring Data JPA
-- PostgreSQL for Render
-- H2 for local quick testing
-- Swagger/OpenAPI
-- Dockerfile ready for Render
-- Seed data from `src/main/resources/db.seed.json`
+| Requisito | Versión |
+|---|---|
+| Java JDK | 21 |
+| Maven | 3.9+ (o Maven integrado en IntelliJ IDEA) |
+| Node.js / npm | Node 20+ |
 
-## Run locally with H2
+### 1. Ejecutar JSON Server (terminal A)
+
+```bash
+npm install
+npm run check:data
+npm run server
+```
+
+JSON Server queda disponible exclusivamente en `http://127.0.0.1:3000`. Sus datos se leen/escriben en `data/db.json`. **Solo para desarrollo local: contiene claves de cuentas ficticias**.
+
+### 2. Ejecutar Spring Boot (terminal B)
 
 ```bash
 mvn spring-boot:run
 ```
 
-Swagger:
+Alternativamente, abre el proyecto Maven en **IntelliJ IDEA** y ejecuta `SafeLabPlatformApiApplication`.
 
-```txt
-http://localhost:8080/swagger-ui.html
-```
+- **Swagger UI:** <http://localhost:8080/swagger-ui.html>
+- **OpenAPI JSON (Español):** <http://localhost:8080/v3/api-docs/es>
+- **OpenAPI JSON (English):** <http://localhost:8080/v3/api-docs/en>
+- **Health:** <http://localhost:8080/api/v1/health>
 
-Health check:
 
-```txt
-http://localhost:8080/actuator/health
-```
+### 2.1 Swagger bilingüe (Español / English)
 
-## Run locally with PostgreSQL
+En la parte superior de **Swagger UI**, junto al título de la API, usa el selector
+**es / en** (Español / English). Las dos opciones muestran **las mismas 66 operaciones** de los
+12 Bounded Contexts; cambian únicamente la documentación (títulos, descripciones,
+parámetros, DTOs y respuestas HTTP).
 
-```bash
-SPRING_PROFILES_ACTIVE=postgres \
-SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5432/safelab_db" \
-SPRING_DATASOURCE_USERNAME="safelab_user" \
-SPRING_DATASOURCE_PASSWORD="your-password" \
-mvn spring-boot:run
-```
+| Especificación | Ruta |
+|---|---|
+| Español (predeterminada) | `/v3/api-docs/es` |
+| English | `/v3/api-docs/en` |
 
-PowerShell:
+Los nombres JSON (`orgId`, `password`, `status`, etc.), las rutas, los roles y los
+códigos de error (`ACCESS_DENIED`) **nunca se traducen**: son contratos técnicos.
+El selector cambia el idioma del documento OpenAPI, **no** el idioma que la
+API devuelve para cada solicitud. Para recibir errores en inglés, selecciona
+`en` en el parámetro opcional **Accept-Language** de cada endpoint; para español
+usa `es`. El valor por defecto de los mensajes sin un idioma compatible es ES.
+
+**Swagger UI nativo:** botones como `Try it out`, `Execute`, `Authorize`,
+`Responses` permanecen en inglés. Traducirlos requeriría personalizar
+Swagger UI; no es parte de esta versión. Las explicaciones de cada endpoint
+sí están disponibles en ambos idiomas.
+
+**Respuestas HTTP:** los errores `400`, `401`, `403`, `404`, `409`, `500`, `502`
+y `503` que correspondan a cada ruta se documentan con el mismo esquema
+`ApiError` y un ejemplo de `403 ACCESS_DENIED` traducido. Las operaciones
+creadas incluyen `201 Created`, y `logout`/`DELETE asset` documentan `204`.
+
+**Mantenimiento de textos:** las traducciones de Swagger se encuentran en
+`src/main/resources/i18n/openapi_es.properties` y `openapi_en.properties`;
+las respuestas de error en `messages_es.properties` y `messages_en.properties`.
+La clase `LocalizedOpenApiCustomizer` convierte estas claves en dos OpenAPI
+válidos sin duplicar controladores.
+
+**Verificación rápida:**
 
 ```powershell
-$env:SPRING_PROFILES_ACTIVE="postgres"
-$env:SPRING_DATASOURCE_URL="jdbc:postgresql://localhost:5432/safelab_db"
-$env:SPRING_DATASOURCE_USERNAME="safelab_user"
-$env:SPRING_DATASOURCE_PASSWORD="your-password"
-mvn spring-boot:run
+# Después de ejecutar JSON Server y Spring Boot
+Invoke-RestMethod http://localhost:8080/v3/api-docs/es | Select-Object -ExpandProperty info
+Invoke-RestMethod http://localhost:8080/v3/api-docs/en | Select-Object -ExpandProperty info
+
+# Error del endpoint protegido en inglés, sin bearer token
+Invoke-RestMethod http://localhost:8080/api/v1/platform/users -Headers @{ "Accept-Language" = "en" }
+# PowerShell mostrará 401; en el cuerpo aparecerá el mensaje en inglés.
 ```
 
-## Deploy to Render
+### 3. Iniciar sesión en Swagger
 
-Create a **Web Service** from the backend repository and use Docker.
-
-Recommended settings:
-
-```txt
-Runtime: Docker
-Region: Oregon (same as your database)
-Branch: main
-Root Directory: ./
-Health Check Path: /actuator/health
-```
-
-Environment variables in the Render Web Service:
-
-```txt
-SPRING_PROFILES_ACTIVE=postgres
-DATABASE_URL=<paste Render PostgreSQL Internal Database URL>
-CORS_ALLOWED_ORIGINS=https://safelab-frontend.vercel.app,http://localhost:5173
-SEED_RESET_ON_START=false
-JAVA_OPTS=-XX:MaxRAMPercentage=75.0
-```
-
-Use the **Internal Database URL** from your Render PostgreSQL service when the backend is also running on Render. It looks like:
-
-```txt
-postgres://safelab_user:PASSWORD@HOST:5432/safelab_db
-```
-
-The backend automatically converts Render's `postgres://...` URL into the JDBC URL required by Spring Boot.
-
-Alternative manual variables:
-
-```txt
-SPRING_PROFILES_ACTIVE=postgres
-SPRING_DATASOURCE_URL=jdbc:postgresql://HOST:5432/safelab_db?sslmode=require
-SPRING_DATASOURCE_USERNAME=safelab_user
-SPRING_DATASOURCE_PASSWORD=PASSWORD
-CORS_ALLOWED_ORIGINS=https://safelab-frontend.vercel.app,http://localhost:5173
-```
-
-## API base URL
-
-Local:
-
-```txt
-http://localhost:8080/api/v1
-```
-
-Render example:
-
-```txt
-https://safelab-platform-api.onrender.com/api/v1
-```
-
-Swagger on Render:
-
-```txt
-https://safelab-platform-api.onrender.com/swagger-ui.html
-```
-
-## Demo reset
-
-Reset all collections from seed data:
-
-```txt
-POST /api/v1/demo/reset
-```
-
-Use only for demo/testing.
-
-## Main collections
-
-Generic CRUD is available for these collections:
-
-```txt
-users
-facilities
-sensors
-assets
-complianceRules
-alerts
-notifications
-incidents
-actuators
-remoteCommands
-reports
-auditLogs
-billing
-currentUser
-```
-
-Example:
-
-```txt
-GET    /api/v1/sensors
-POST   /api/v1/sensors
-GET    /api/v1/sensors/{id}
-PATCH  /api/v1/sensors/{id}
-DELETE /api/v1/sensors/{id}
-```
-
-## Business endpoints
-
-### IAM
-
-```txt
-POST /api/v1/auth/sign-in
-POST /api/v1/auth/sign-out
-GET  /api/v1/auth/me
-```
-
-Demo credential:
+En Swagger, abre `POST /api/v1/auth/login` y usa este body (cuentas de prueba exclusivamente):
 
 ```json
 {
-  "email": "admin@safelab.pe",
-  "password": "123456"
+  "identifier": "admin@safelab.test",
+  "password": "SafeLab2026%"
 }
 ```
 
-### Dashboard
+Copia el valor de `accessToken`, pulsa **Authorize** y pega el token. Luego utiliza los endpoints de los 12 BC. Para probar aislamiento, inicia otra sesión con un gerente, por ejemplo `gerente.andes@safelab.test` y la misma contraseña ficticia.
 
-```txt
-GET  /api/v1/dashboard/overview
-POST /api/v1/dashboard/refresh
+### 4. Ejecutar pruebas
+
+```bash
+npm run check:data
+mvn test
 ```
 
-### Sensor Monitoring
+La instalación de dependencias requiere conexión a npm y Maven Central. Cuando cierres JSON Server, las llamadas de la API devolverán `503 DATA_SOURCE_UNAVAILABLE`.
 
-```txt
-GET   /api/v1/sensor-monitoring/sensors
-POST  /api/v1/sensor-monitoring/sensors
-PATCH /api/v1/sensor-monitoring/sensors/{id}/reading
-POST  /api/v1/sensor-monitoring/sensors/{id}/disconnect
+## Arquitectura sencilla (DDD)
+
+```text
+src/main/java/com/safelab/platform/
+  identityaccess/        # login, registro, invitaciones, RBAC, plataforma
+  userprofiles/          # perfil personal
+  subscriptionbilling/   # suscripción y recibos (lectura)
+  facilityassets/        # empresas, sedes y activos
+  sensormonitoring/      # sensores y mediciones
+  equipmentmaintenance/  # estado y mantenimiento
+  alertsincidents/       # alertas e incidentes
+  environmentalcompliance/ # reglas, evaluaciones y violaciones
+  remoteactuation/      # comandos simulados
+  dashboardinsights/     # KPIs
+  reportinganalytics/    # reportes
+  audittraceability/     # auditoría
+  shared/                # cliente JSON Server, sesión simulada, errores, reglas comunes
+
+data/
+  db.json                # mismas colecciones e IDs de los dos frontends
+  permission-catalog.json  # mismos 21 permisos
 ```
 
-Out-of-range sensor readings create related alerts, notifications and audit logs.
+Los controladores son pequeños y usan servicios compartidos para practicar validaciones, acceso multiempresa y contratos REST. El acceso a JSON Server está encapsulado en `JsonServerGateway`: en **v2.0.0** se reemplazará por repositorios PostgreSQL, migraciones y seguridad real.
 
-### Alerts & Notifications
+## Límites de seguridad (v1 únicamente)
 
-```txt
-GET  /api/v1/alerts-notifications/alerts
-GET  /api/v1/alerts-notifications/notifications
-POST /api/v1/alerts-notifications/alerts/{id}/acknowledge
-POST /api/v1/alerts-notifications/alerts/{id}/resolve
-POST /api/v1/alerts-notifications/alerts/{id}/escalate
-POST /api/v1/alerts-notifications/notifications/{id}/mark-read
-```
+- **No usar en producción:** las contraseñas ficticias siguen en el JSON local y el token es una sesión temporal en memoria.
+- Una cuenta no activa no puede iniciar sesión. Las credenciales nunca se devuelven por la API pública.
+- Los roles y `organizationId` se consultan en el servidor desde el token; no se aceptan encabezados arbitrarios que cambien de empresa.
+- Las operaciones de registro, invitación, pago, IoT y correo son simuladas. No se envían emails ni se ejecutan cargos o comandos físicos.
+- No expongas el puerto 3000 de JSON Server a Internet ni uses contraseñas reales en este fixture.
 
-Escalating an alert creates an incident.
+## Documentación
 
-### Remote Control
+- [Contratos REST y códigos HTTP](docs/api-contracts.md)
+- [Evolución v1 → v2 → v2.5 → v3](docs/development-roadmap.md)
 
-```txt
-GET  /api/v1/remote-control/actuators
-GET  /api/v1/remote-control/commands
-POST /api/v1/remote-control/actuators/{id}/commands
-```
-
-Example command:
-
-```json
-{
-  "command": "Start",
-  "requestedBy": "Dr. Maria Lopez"
-}
-```
-
-### Incidents
-
-```txt
-GET  /api/v1/incident-management/incidents
-POST /api/v1/incident-management/incidents/{id}/start-investigation
-POST /api/v1/incident-management/incidents/{id}/resolve
-POST /api/v1/incident-management/incidents/{id}/close
-```
-
-### Audit Trail
-
-```txt
-GET /api/v1/audit-traceability/logs
-GET /api/v1/audit-traceability/timeline
-```
-
-## Frontend connection
-
-After the backend is deployed, set this in Vercel for the frontend:
-
-```txt
-VITE_API_BASE_URL=https://YOUR_RENDER_BACKEND_URL/api/v1
-```
-
-Then the frontend can stop using only localStorage/demo state and start consuming the deployed API.
+**Stack:** Java 21 · Spring Boot 3.4.5 · Spring Web · Bean Validation · Springdoc OpenAPI · JSON Server 0.17.4.
