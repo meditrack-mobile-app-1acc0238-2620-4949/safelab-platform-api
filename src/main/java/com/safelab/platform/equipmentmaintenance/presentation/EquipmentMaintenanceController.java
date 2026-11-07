@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.safelab.platform.shared.application.RecordsService;
 import io.swagger.v3.oas.annotations.Operation;
 import com.safelab.platform.equipmentmaintenance.presentation.dto.MaintenanceCreateRequest;
-import com.safelab.platform.shared.infrastructure.JsonServerGateway;
+import com.safelab.platform.shared.domain.DataGateway;
 import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/equipmentmaintenance")
 @Tag(name="04. Equipment Health & Maintenance")
 public class EquipmentMaintenanceController {
-    private final RecordsService r;private final JsonServerGateway db;public EquipmentMaintenanceController(RecordsService r,JsonServerGateway db){this.r=r;this.db=db;}
+    private final RecordsService r;private final DataGateway db;public EquipmentMaintenanceController(RecordsService r,DataGateway db){this.r=r;this.db=db;}
     @GetMapping("/equipment") @Operation(summary="Equipos registrados de la organización")
     public ArrayNode equipment(){return r.list("assets","maintenance.view");}
     @GetMapping("/records") @Operation(summary="Historial de mantenimiento")

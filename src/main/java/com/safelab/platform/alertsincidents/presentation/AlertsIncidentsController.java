@@ -5,21 +5,22 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.safelab.platform.alertsincidents.presentation.dto.StatusChangeRequest;
 import com.safelab.platform.alertsincidents.presentation.dto.IncidentCreateRequest;
 import com.safelab.platform.shared.application.RecordsService;
-import com.safelab.platform.shared.infrastructure.JsonServerGateway;
+import com.safelab.platform.shared.domain.DataGateway;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 
 @RestController
 @RequestMapping("/api/v1/alertsincidents")
 @Tag(name="05. Alert & Incident Management")
 public class AlertsIncidentsController {
-    private final RecordsService r;private final JsonServerGateway db;
-    public AlertsIncidentsController(RecordsService r,JsonServerGateway db){this.r=r;this.db=db;}
+    private final RecordsService r;private final DataGateway db;
+    public AlertsIncidentsController(RecordsService r,DataGateway db){this.r=r;this.db=db;}
     @GetMapping("/alerts") @Operation(summary="Alertas autorizadas")
     public ArrayNode alerts(){return r.list("alerts","incidents.view");}
     @GetMapping("/notifications") @Operation(summary="Notificaciones empresariales")
@@ -41,6 +42,7 @@ public class AlertsIncidentsController {
     @PostMapping("/incidents/{id}/resolve") @Operation(summary="Marcar incidente como resuelto")
     public ObjectNode resolveIncident(@PathVariable String id,@Valid @RequestBody StatusChangeRequest request){return change("incidents",id,"resolved",request.notes(),"incidents.resolve");}
     @PostMapping("/alerts/{id}/escalate") @Operation(summary="Escalar alerta y abrir incidente vinculado")
+    @Transactional
     public ObjectNode escalate(@PathVariable String id,@Valid @RequestBody StatusChangeRequest request){
         var alert=r.get("alerts",id,"incidents.create");
         ObjectNode incident=db.object();incident.put("title","Escalation: "+alert.path("title").asText());

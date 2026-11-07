@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.safelab.platform.shared.domain.ApiException;
-import com.safelab.platform.shared.infrastructure.JsonServerGateway;
+import com.safelab.platform.shared.domain.DataGateway;
 import com.safelab.platform.shared.security.AccessRules;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/subscriptionbilling")
 @Tag(name="10. Subscription & Billing",description="Consultas de solo lectura: no se cambian planes ni se cobran pagos reales")
 public class SubscriptionBillingController {
-    private final JsonServerGateway db;private final AccessRules access;
-    public SubscriptionBillingController(JsonServerGateway db,AccessRules access){this.db=db;this.access=access;}
+    private final DataGateway db;private final AccessRules access;
+    public SubscriptionBillingController(DataGateway db,AccessRules access){this.db=db;this.access=access;}
     @GetMapping("/subscriptions") @Operation(summary="Todas las suscripciones (solo administrador de SafeLab)")
     public ArrayNode all(){access.platformOnly();return db.all("subscriptions");}
     @GetMapping("/current") @Operation(summary="Suscripción de mi empresa (solo gerente general)")

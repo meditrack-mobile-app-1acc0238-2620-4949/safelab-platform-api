@@ -93,7 +93,7 @@ public class LocalizedOpenApiCustomizer implements OpenApiCustomizer {
     @Override
     public void customise(OpenAPI api) {
         api.setInfo(new Info().title(t("api.title", "SafeLab Platform API"))
-            .version("1.0.0").description(t("api.description", "SafeLab local API")));
+            .version("2.0.0").description(t("api.description", "SafeLab local API")));
         if (api.getComponents() == null) api.setComponents(new io.swagger.v3.oas.models.Components());
         if (api.getComponents().getSecuritySchemes() != null
                 && api.getComponents().getSecuritySchemes().get("bearerAuth") != null) {
@@ -201,7 +201,6 @@ public class LocalizedOpenApiCustomizer implements OpenApiCustomizer {
         if (path.contains("{") || key.startsWith("POST /api/v1/auth/register/invitation")) errorResponse(responses, "404", path);
         if (key.contains("/register/") || key.contains("/invitations") || CREATED.contains(key)) errorResponse(responses, "409", path);
         if (!NO_CONTENT.contains(key) || requiresAuth) {
-            errorResponse(responses, "502", path);
             errorResponse(responses, "503", path);
         }
         errorResponse(responses, "500", path);

@@ -1,146 +1,71 @@
-# SafeLab Platform API
+# SafeLab Platform API — v2.0.0
 
-**Backend académico de SafeLab**, sistema multiempresa para supervisión de cadena de frío clínica, sensores IoT, mantenimiento, alertas, cumplimiento ambiental y auditoría. Comparte los 12 Bounded Contexts y los IDs de datos simulados de **SafeLab Web** y **SafeLab Mobile**.
+Backend REST en Java 21 / Spring Boot 3.4.5 para los **12 Bounded Contexts** de SafeLab.
+Conserva los contratos REST y la documentación **Swagger ES/EN** de v1.0.0 y añade PostgreSQL 18.
 
-## Versión v1.0.0 — JSON Server
+> **Estado:** entrega de código para validación local. No desplegar en producción: JSON Server y las cuentas demo son solo para desarrollo. La compilación Maven y las pruebas contra PostgreSQL del equipo deben confirmarse antes del tag `backend-v2.0.0`.
 
-Esta versión **no utiliza PostgreSQL, MySQL, H2 ni Docker**. Spring Boot expone la API REST, valida requests y permisos, y consulta datos de un **JSON Server local**, independiente de los frontends. Web/Mobile **no están conectados** en esta etapa.
+## Elegir almacenamiento
 
-| Requisito | Versión |
-|---|---|
-| Java JDK | 21 |
-| Maven | 3.9+ (o Maven integrado en IntelliJ IDEA) |
-| Node.js / npm | Node 20+ |
+| Perfil | API | Fuente de datos | Requisitos |
+|---|---|---|---|
+| **postgres** (por defecto) | http://localhost:8080 | PostgreSQL `safelab_db` | PostgreSQL + 2 credenciales SQL |
+| **jsonserver** | http://localhost:8081 | JSON Server http://127.0.0.1:3000 | Node.js + `npm install` + `npm run server` |
 
-### 1. Ejecutar JSON Server (terminal A)
+**Las rutas `/api/v1/**` son iguales**. Los perfiles cambian únicamente el adaptador de persistencia y la sesión. PostgreSQL requiere configuración inicial una vez; JSON Server no. Las dos opciones de Swagger `es` / `en` traducen la documentación, no cambian la base de datos. Si ambos backends corren, cada uno debe utilizar un puerto distinto. Swagger mostrará **Servers** con ambas URLs locales; elegir una dirige las peticiones a esa instancia, pero no cambia el perfil ni la BD de una instancia ya iniciada.
 
-```bash
+## Inicio rápido — PostgreSQL local
+
+1. Instala **JDK 21**, Maven, PostgreSQL 18 (incluye `psql`) e IntelliJ IDEA. Verifica `java -version`, `mvn -version` y `psql --version`.
+2. Primera instalación: abre PowerShell en la raíz del proyecto y ejecuta:
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-postgres.ps1
+   ```
+   Introduce tu **propia contraseña de `postgres`** y define las contraseñas de los dos nuevos roles mediante los mensajes interactivos. **NO** compartas esas contraseñas. El script **no borra** usuarios ni BD existentes y **no cambia** contraseñas existentes salvo que se solicite con `-ResetPasswords`.
+   Si **ya tienes** `safelab_db` con propietario `safelab_migrator`, rol `safelab_app` y permisos de conexión/uso de schema (como en la instalación anterior), **omite este paso**.
+3. En **IntelliJ → Run → Edit Configurations → Environment variables**, coloca (con tus propios secretos):
+   ```text
+   DB_URL=jdbc:postgresql://localhost:5432/safelab_db
+   DB_USER=safelab_app
+   DB_PASSWORD=<contraseña de safelab_app>
+   FLYWAY_USER=safelab_migrator
+   FLYWAY_PASSWORD=<contraseña de safelab_migrator>
+   ```
+   Asegúrate de que **Active profiles** sea `postgres` o déjalo vacío (es el perfil por defecto). JDK recomendado: **21**.
+4. Ejecuta `mvn clean test` y después inicia `SafeLabPlatformApiApplication` con ▶. Flyway ejecuta **V1, V2 y V3 una sola vez**; Hibernate solo valida el esquema (`ddl-auto=validate`).
+5. La BD estará vacía (por seguridad); para cargar **opcionalmente** las 3 empresas y 19 cuentas demo, ejecuta **una sola vez**:
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\seed-demo.ps1
+   ```
+   Introduce la contraseña de `safelab_migrator` cuando `psql` la solicite. El archivo semilla es idempotente (`ON CONFLICT DO NOTHING`), pero **no debe ejecutarse en producción**.
+6. Abre [Swagger](http://localhost:8080/swagger-ui.html). Prueba `POST /api/v1/auth/login` con la cuenta de demo `admin@safelab.test` y la contraseña de prueba documentada en `docs/LOCAL_SETUP.md`. **Sin seed demo no hay cuenta inicial**, por lo que la API estará activa pero el login requerirá registrar/activar cuentas por un flujo autorizado.
+
+## Inicio rápido — JSON Server
+
+```powershell
 npm install
 npm run check:data
 npm run server
 ```
 
-JSON Server queda disponible exclusivamente en `http://127.0.0.1:3000`. Sus datos se leen/escriben en `data/db.json`. **Solo para desarrollo local: contiene claves de cuentas ficticias**.
+En la terminal de IntelliJ selecciona `jsonserver` como Spring Profile y ▶; Swagger estará en [http://localhost:8081/swagger-ui.html](http://localhost:8081/swagger-ui.html). El archivo **`data/db.seed.json` nunca se modifica**: JSON Server escribe en `data/runtime/db.json`. Las operaciones POST/PATCH/DELETE **persisten** en ese archivo y sobreviven a recargas y reinicios. Solo `npm run reset:data` restaura la semilla original (detén JSON Server antes).
 
-### 2. Ejecutar Spring Boot (terminal B)
+## Cómo trabajar en equipo
 
-```bash
-mvn spring-boot:run
-```
-
-Alternativamente, abre el proyecto Maven en **IntelliJ IDEA** y ejecuta `SafeLabPlatformApiApplication`.
-
-- **Swagger UI:** <http://localhost:8080/swagger-ui.html>
-- **OpenAPI JSON (Español):** <http://localhost:8080/v3/api-docs/es>
-- **OpenAPI JSON (English):** <http://localhost:8080/v3/api-docs/en>
-- **Health:** <http://localhost:8080/api/v1/health>
-
-
-### 2.1 Swagger bilingüe (Español / English)
-
-En la parte superior de **Swagger UI**, junto al título de la API, usa el selector
-**es / en** (Español / English). Las dos opciones muestran **las mismas 66 operaciones** de los
-12 Bounded Contexts; cambian únicamente la documentación (títulos, descripciones,
-parámetros, DTOs y respuestas HTTP).
-
-| Especificación | Ruta |
-|---|---|
-| Español (predeterminada) | `/v3/api-docs/es` |
-| English | `/v3/api-docs/en` |
-
-Los nombres JSON (`orgId`, `password`, `status`, etc.), las rutas, los roles y los
-códigos de error (`ACCESS_DENIED`) **nunca se traducen**: son contratos técnicos.
-El selector cambia el idioma del documento OpenAPI, **no** el idioma que la
-API devuelve para cada solicitud. Para recibir errores en inglés, selecciona
-`en` en el parámetro opcional **Accept-Language** de cada endpoint; para español
-usa `es`. El valor por defecto de los mensajes sin un idioma compatible es ES.
-
-**Swagger UI nativo:** botones como `Try it out`, `Execute`, `Authorize`,
-`Responses` permanecen en inglés. Traducirlos requeriría personalizar
-Swagger UI; no es parte de esta versión. Las explicaciones de cada endpoint
-sí están disponibles en ambos idiomas.
-
-**Respuestas HTTP:** los errores `400`, `401`, `403`, `404`, `409`, `500`, `502`
-y `503` que correspondan a cada ruta se documentan con el mismo esquema
-`ApiError` y un ejemplo de `403 ACCESS_DENIED` traducido. Las operaciones
-creadas incluyen `201 Created`, y `logout`/`DELETE asset` documentan `204`.
-
-**Mantenimiento de textos:** las traducciones de Swagger se encuentran en
-`src/main/resources/i18n/openapi_es.properties` y `openapi_en.properties`;
-las respuestas de error en `messages_es.properties` y `messages_en.properties`.
-La clase `LocalizedOpenApiCustomizer` convierte estas claves en dos OpenAPI
-válidos sin duplicar controladores.
-
-**Verificación rápida:**
-
-```powershell
-# Después de ejecutar JSON Server y Spring Boot
-Invoke-RestMethod http://localhost:8080/v3/api-docs/es | Select-Object -ExpandProperty info
-Invoke-RestMethod http://localhost:8080/v3/api-docs/en | Select-Object -ExpandProperty info
-
-# Error del endpoint protegido en inglés, sin bearer token
-Invoke-RestMethod http://localhost:8080/api/v1/platform/users -Headers @{ "Accept-Language" = "en" }
-# PowerShell mostrará 401; en el cuerpo aparecerá el mensaje en inglés.
-```
-
-### 3. Iniciar sesión en Swagger
-
-En Swagger, abre `POST /api/v1/auth/login` y usa este body (cuentas de prueba exclusivamente):
-
-```json
-{
-  "identifier": "admin@safelab.test",
-  "password": "SafeLab2026%"
-}
-```
-
-Copia el valor de `accessToken`, pulsa **Authorize** y pega el token. Luego utiliza los endpoints de los 12 BC. Para probar aislamiento, inicia otra sesión con un gerente, por ejemplo `gerente.andes@safelab.test` y la misma contraseña ficticia.
-
-### 4. Ejecutar pruebas
-
-```bash
-npm run check:data
-mvn test
-```
-
-La instalación de dependencias requiere conexión a npm y Maven Central. Cuando cierres JSON Server, las llamadas de la API devolverán `503 DATA_SOURCE_UNAVAILABLE`.
-
-## Arquitectura sencilla (DDD)
-
-```text
-src/main/java/com/safelab/platform/
-  identityaccess/        # login, registro, invitaciones, RBAC, plataforma
-  userprofiles/          # perfil personal
-  subscriptionbilling/   # suscripción y recibos (lectura)
-  facilityassets/        # empresas, sedes y activos
-  sensormonitoring/      # sensores y mediciones
-  equipmentmaintenance/  # estado y mantenimiento
-  alertsincidents/       # alertas e incidentes
-  environmentalcompliance/ # reglas, evaluaciones y violaciones
-  remoteactuation/      # comandos simulados
-  dashboardinsights/     # KPIs
-  reportinganalytics/    # reportes
-  audittraceability/     # auditoría
-  shared/                # cliente JSON Server, sesión simulada, errores, reglas comunes
-
-data/
-  db.json                # mismas colecciones e IDs de los dos frontends
-  permission-catalog.json  # mismos 21 permisos
-```
-
-Los controladores son pequeños y usan servicios compartidos para practicar validaciones, acceso multiempresa y contratos REST. El acceso a JSON Server está encapsulado en `JsonServerGateway`: en **v2.0.0** se reemplazará por repositorios PostgreSQL, migraciones y seguridad real.
-
-## Límites de seguridad (v1 únicamente)
-
-- **No usar en producción:** las contraseñas ficticias siguen en el JSON local y el token es una sesión temporal en memoria.
-- Una cuenta no activa no puede iniciar sesión. Las credenciales nunca se devuelven por la API pública.
-- Los roles y `organizationId` se consultan en el servidor desde el token; no se aceptan encabezados arbitrarios que cambien de empresa.
-- Las operaciones de registro, invitación, pago, IoT y correo son simuladas. No se envían emails ni se ejecutan cargos o comandos físicos.
-- No expongas el puerto 3000 de JSON Server a Internet ni uses contraseñas reales en este fixture.
+- Rama: `feature/av2-backend-postgresql`, desde `develop`.
+- **Nunca** subir contraseñas, `.env` privados, `data/runtime/db.json`, carpetas `target/` y `node_modules/`.
+- Cambios de esquema: crear nueva migración `V4__...sql` (no alterar V1, V2, V3 después del primer uso).
+- Con datos reales: **no ejecutar `seed-demo.ps1`**. PostgreSQL conserva los datos entre reinicios. Flyway solo aplica migraciones pendientes.
+- `postgres` es administrador de la instalación; `safelab_migrator` posee el esquema y ejecuta Flyway; `safelab_app` solo efectúa operaciones DML autorizadas.
 
 ## Documentación
 
-- [Contratos REST y códigos HTTP](docs/api-contracts.md)
-- [Evolución v1 → v2 → v2.5 → v3](docs/development-roadmap.md)
+- [Guía paso a paso para nuevos colaboradores](docs/LOCAL_SETUP.md)
+- [Seguridad SQL, RLS y limitaciones](docs/DATABASE_SECURITY.md)
+- [Plan de pruebas en IntelliJ, pgAdmin y Swagger](docs/TEST_PLAN.md)
+- [Modos de ejecución y Swagger](docs/API_MODES.md)
+- [Contratos REST](docs/api-contracts.md)
 
-**Stack:** Java 21 · Spring Boot 3.4.5 · Spring Web · Bean Validation · Springdoc OpenAPI · JSON Server 0.17.4.
+## Alcance y límites
+
+Este ZIP es para **prueba local v2.0.0**, no producción. El control IAM/RBAC de la API se mantiene; en PostgreSQL se han añadido FK compuestas, índices, unicidad, restricciones, cupos transaccionales y RLS basada en un contexto **que proporciona la propia aplicación**. La clave de `safelab_app` debe permanecer privada: no entregar acceso SQL directo a usuarios finales. Las funciones de pagos, correos reales, control físico de actuadores, gestión de secretos y despliegue quedan fuera de esta etapa.

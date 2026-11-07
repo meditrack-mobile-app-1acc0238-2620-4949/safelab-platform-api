@@ -3,7 +3,7 @@ package com.safelab.platform.audittraceability.presentation;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.safelab.platform.shared.application.RecordsService;
-import com.safelab.platform.shared.infrastructure.JsonServerGateway;
+import com.safelab.platform.shared.domain.DataGateway;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
@@ -12,8 +12,8 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/audittraceability")
 @Tag(name="08. Audit & Traceability")
 public class AuditTraceabilityController {
-    private final RecordsService r;private final JsonServerGateway db;
-    public AuditTraceabilityController(RecordsService r,JsonServerGateway db){this.r=r;this.db=db;}
+    private final RecordsService r;private final DataGateway db;
+    public AuditTraceabilityController(RecordsService r,DataGateway db){this.r=r;this.db=db;}
     @GetMapping("/logs") @Operation(summary="Registros de auditoría del alcance autorizado")
     public ArrayNode logs(){return r.list("auditLogs","audit.view");}
     @GetMapping("/timeline") @Operation(summary="Resumen de auditoría por empresa")
