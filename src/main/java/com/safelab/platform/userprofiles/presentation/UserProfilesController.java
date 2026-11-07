@@ -2,8 +2,8 @@ package com.safelab.platform.userprofiles.presentation;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.safelab.platform.shared.domain.ApiException;
-import com.safelab.platform.shared.infrastructure.JsonServerGateway;
-import com.safelab.platform.shared.security.MockSessionService;
+import com.safelab.platform.shared.domain.DataGateway;
+import com.safelab.platform.shared.security.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
@@ -15,10 +15,10 @@ import java.util.regex.Pattern;
 @RequestMapping("/api/v1/userprofiles")
 @Tag(name="09. User Profile Management")
 public class UserProfilesController {
-    private final MockSessionService session;private final JsonServerGateway db;
+    private final AuthService session;private final DataGateway db;
     private static final Pattern NAME=Pattern.compile("[\\p{L} ]{2,80}");
     private static final Set<String> EDITABLE=Set.of("firstName","lastName","phone","age","city","jobTitle");
-    public UserProfilesController(MockSessionService session,JsonServerGateway db){this.session=session;this.db=db;}
+    public UserProfilesController(AuthService session,DataGateway db){this.session=session;this.db=db;}
     @GetMapping("/me") @Operation(summary="Ver mi perfil")
     public ObjectNode profile(){return session.sanitized(session.current());}
     @PatchMapping("/me") @Operation(summary="Actualizar datos personales editables (sin cambiar username ni rol)")

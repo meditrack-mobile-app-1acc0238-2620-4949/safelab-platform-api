@@ -5,15 +5,16 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.safelab.platform.identityaccess.presentation.dto.*;
 import com.safelab.platform.shared.domain.ApiException;
-import com.safelab.platform.shared.infrastructure.JsonServerGateway;
+import com.safelab.platform.shared.domain.DataGateway;
 import com.safelab.platform.shared.security.AccessRules;
-import com.safelab.platform.shared.security.MockSessionService;
+import com.safelab.platform.shared.security.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -25,10 +26,10 @@ import java.util.UUID;
 @RequestMapping("/api/v1/identityaccess")
 @Tag(name="01. Identity & Access Management",description="Empleados, invitaciones y permisos por empresa")
 public class OrganizationUsersController {
-    private final JsonServerGateway db;
+    private final DataGateway db;
     private final AccessRules access;
-    private final MockSessionService session;
-    public OrganizationUsersController(JsonServerGateway db,AccessRules access,MockSessionService session){this.db=db;this.access=access;this.session=session;}
+    private final AuthService session;
+    public OrganizationUsersController(DataGateway db,AccessRules access,AuthService session){this.db=db;this.access=access;this.session=session;}
 
     @GetMapping("/permissions/catalog")
     @Operation(summary="Catálogo de los 21 permisos y defaults por rol")
@@ -49,6 +50,7 @@ public class OrganizationUsersController {
     }
     @PostMapping("/organizations/{orgId}/invitations")
     @Operation(summary="Invitar a un empleado reservando un cupo",description="Solo gerente de esa empresa. El código se devuelve para pruebas; no se envían correos reales.")
+    @Transactional
     public ResponseEntity<ObjectNode> invite(@PathVariable String orgId,@Valid @RequestBody InvitationCreateRequest request){
         access.managerOnly();access.sameOrg(orgId);
         if(!access.catalog().path("defaults").has(request.role()))throw new ApiException(HttpStatus.BAD_REQUEST,"ROLE_NOT_ALLOWED","Este rol no está disponible para invitaciones.");
@@ -75,6 +77,7 @@ public class OrganizationUsersController {
     }
     @PostMapping("/organizations/{orgId}/invitations/{id}/cancel")
     @Operation(summary="Cancelar una invitación pendiente")
+    @Transactional
     public ObjectNode cancel(@PathVariable String orgId,@PathVariable String id){access.managerOnly();access.sameOrg(orgId);
         JsonNode inv=db.get("invitations",id);if(!orgId.equals(inv.path("organizationId").asText()))access.denied();
         if(!"pending".equals(inv.path("status").asText()))throw new ApiException(HttpStatus.CONFLICT,"INVITATION_NOT_PENDING","Solo se pueden cancelar invitaciones pendientes.");
@@ -91,6 +94,7 @@ public class OrganizationUsersController {
     }
     @PutMapping("/organizations/{orgId}/users/{userId}/permissions")
     @Operation(summary="Guardar permisos (todos los switches en una sola operación)")
+    @Transactional
     public ObjectNode updatePermissions(@PathVariable String orgId,@PathVariable String userId,@Valid @RequestBody PermissionUpdateRequest request){
         access.managerOnly();access.sameOrg(orgId);JsonNode member=member(orgId,userId);
         if("organizationAdmin".equals(member.path("role").asText()) || "platformAdmin".equals(member.path("role").asText()))access.denied();

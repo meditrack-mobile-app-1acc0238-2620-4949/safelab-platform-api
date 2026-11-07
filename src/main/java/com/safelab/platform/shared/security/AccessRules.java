@@ -2,7 +2,7 @@ package com.safelab.platform.shared.security;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.safelab.platform.shared.domain.ApiException;
-import com.safelab.platform.shared.infrastructure.JsonServerGateway;
+import com.safelab.platform.shared.domain.DataGateway;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.core.io.ClassPathResource;
@@ -14,10 +14,10 @@ import java.util.Set;
 /** RBAC y límites de empresa en un solo lugar. No usar parámetros para decidir el usuario. */
 @Service
 public class AccessRules {
-    private final MockSessionService auth;
-    private final JsonServerGateway data;
+    private final AuthService auth;
+    private final DataGateway data;
     private final JsonNode catalog;
-    public AccessRules(MockSessionService auth, JsonServerGateway data, ObjectMapper mapper) throws IOException {
+    public AccessRules(AuthService auth, DataGateway data, ObjectMapper mapper) throws IOException {
         this.auth = auth; this.data = data;
         try (var input = new ClassPathResource("permission-catalog.json").getInputStream()) { this.catalog = mapper.readTree(input); }
     }

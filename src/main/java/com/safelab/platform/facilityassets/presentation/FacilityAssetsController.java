@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.safelab.platform.shared.application.RecordsService;
-import com.safelab.platform.shared.infrastructure.JsonServerGateway;
+import com.safelab.platform.shared.domain.DataGateway;
 import com.safelab.platform.shared.security.AccessRules;
 import io.swagger.v3.oas.annotations.Operation;
 import com.safelab.platform.facilityassets.presentation.dto.AssetCreateRequest;
@@ -19,9 +19,9 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name="02. Facility & Asset Management")
 public class FacilityAssetsController {
     private final RecordsService records;
-    private final JsonServerGateway db;
+    private final DataGateway db;
     private final AccessRules access;
-    public FacilityAssetsController(RecordsService records,JsonServerGateway db,AccessRules access){this.records=records;this.db=db;this.access=access;}
+    public FacilityAssetsController(RecordsService records,DataGateway db,AccessRules access){this.records=records;this.db=db;this.access=access;}
     @GetMapping("/organizations")
     @Operation(summary="Consultar organizaciones autorizadas")
     public ArrayNode organizations(){ArrayNode result=db.array();for(JsonNode o:db.all("organizations"))

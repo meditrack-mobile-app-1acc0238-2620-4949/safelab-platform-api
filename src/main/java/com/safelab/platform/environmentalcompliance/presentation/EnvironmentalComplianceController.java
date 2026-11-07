@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.safelab.platform.shared.application.RecordsService;
 import io.swagger.v3.oas.annotations.Operation;
 import com.safelab.platform.environmentalcompliance.presentation.dto.RuleCreateRequest;
-import com.safelab.platform.shared.infrastructure.JsonServerGateway;
+import com.safelab.platform.shared.domain.DataGateway;
 import com.safelab.platform.shared.domain.ApiException;
 import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/environmentalcompliance")
 @Tag(name="11. Environmental Compliance Management")
 public class EnvironmentalComplianceController {
-    private final RecordsService r;private final JsonServerGateway db;public EnvironmentalComplianceController(RecordsService r,JsonServerGateway db){this.r=r;this.db=db;}
+    private final RecordsService r;private final DataGateway db;public EnvironmentalComplianceController(RecordsService r,DataGateway db){this.r=r;this.db=db;}
     @GetMapping("/rules") @Operation(summary="Reglas ambientales de la organización")
     public ArrayNode rules(){return r.list("complianceRules","compliance.view");}
     @GetMapping("/evaluations") @Operation(summary="Evaluaciones y lecturas validadas")

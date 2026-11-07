@@ -1,0 +1,11 @@
+const fs = require('fs');
+const path = require('path');
+const { spawn } = require('child_process');
+const root = path.join(__dirname, '..');
+const seed = path.join(root, 'data/db.seed.json');
+const runtime = path.join(root, 'data/runtime/db.json');
+fs.mkdirSync(path.dirname(runtime), { recursive: true });
+if (!fs.existsSync(runtime)) fs.copyFileSync(seed, runtime);
+const executable = path.join(root, 'node_modules/.bin/json-server' + (process.platform === 'win32' ? '.cmd' : ''));
+const child = spawn(executable, ['--watch', runtime, '--host', '127.0.0.1', '--port', '3000'], { stdio: 'inherit', shell: process.platform === 'win32' });
+child.on('exit', code => process.exit(code ?? 0));

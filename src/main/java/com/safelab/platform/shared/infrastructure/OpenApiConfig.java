@@ -4,6 +4,8 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.servers.Server;
+import org.springframework.beans.factory.annotation.Value;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.MessageSource;
@@ -18,13 +20,18 @@ import java.util.Locale;
 @Configuration
 public class OpenApiConfig {
     @Bean
-    public OpenAPI api() {
+    public OpenAPI api(@Value("${safelab.storage-mode}") String mode) {
+        boolean postgres = "POSTGRESQL".equalsIgnoreCase(mode);
+        Server pg = new Server().url("http://localhost:8080").description("Local - PostgreSQL");
+        Server demo = new Server().url("http://localhost:8081").description("Local - JSON Server");
         return new OpenAPI()
-            .info(new Info().title("SafeLab Platform API").version("1.0.0"))
+            .addServersItem(postgres ? pg : demo)
+            .addServersItem(postgres ? demo : pg)
+            .info(new Info().title("SafeLab Platform API").version("2.0.0"))
             .addSecurityItem(new SecurityRequirement().addList("bearerAuth"))
             .components(new Components().addSecuritySchemes("bearerAuth", new SecurityScheme()
                 .type(SecurityScheme.Type.HTTP).scheme("bearer")
-                .bearerFormat("Opaque mock session token")));
+                .bearerFormat("Opaque persisted bearer token")));
     }
 
     @Bean

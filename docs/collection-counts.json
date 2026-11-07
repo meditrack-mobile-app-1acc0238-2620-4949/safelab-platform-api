@@ -1,0 +1,22 @@
+{
+  "organizations": 3,
+  "users": 19,
+  "invitations": 0,
+  "permissionAssignments": 0,
+  "accountRequests": 0,
+  "facilities": 4,
+  "assets": 10,
+  "sensors": 12,
+  "maintenanceRecords": 9,
+  "alerts": 5,
+  "notifications": 3,
+  "incidents": 4,
+  "reports": 3,
+  "auditLogs": 4,
+  "subscriptions": 3,
+  "complianceRules": 6,
+  "complianceEvaluations": 8,
+  "complianceViolations": 3,
+  "actuators": 7,
+  "remoteCommands": 3
+}

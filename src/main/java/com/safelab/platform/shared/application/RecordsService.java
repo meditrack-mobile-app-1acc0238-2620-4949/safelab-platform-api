@@ -4,19 +4,20 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.safelab.platform.shared.domain.ApiException;
-import com.safelab.platform.shared.infrastructure.JsonServerGateway;
+import com.safelab.platform.shared.domain.DataGateway;
 import com.safelab.platform.shared.security.AccessRules;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
 /** CRUD reutilizable por BC con filtros multiempresa. */
 @Service
 public class RecordsService {
-    private final JsonServerGateway db;
+    private final DataGateway db;
     private final AccessRules access;
-    public RecordsService(JsonServerGateway db, AccessRules access) { this.db=db; this.access=access; }
+    public RecordsService(DataGateway db, AccessRules access) { this.db=db; this.access=access; }
     public ArrayNode list(String collection, String permission) {
         access.require(permission);
         ArrayNode result=db.array();
@@ -27,6 +28,7 @@ public class RecordsService {
         access.require(permission);
         JsonNode item=db.get(collection,id); access.accessItem(item); return safe(item);
     }
+    @Transactional
     public ObjectNode create(String collection, ObjectNode input, String permission) {
         access.require(permission);
         String owner = access.platform() ? input.path("organizationId").asText("") : access.org();
@@ -42,6 +44,7 @@ public class RecordsService {
         audit("created",collection,created.path("id").asText(),owner);
         return safe(created);
     }
+    @Transactional
     public ObjectNode patch(String collection,String id,ObjectNode input,String permission) {
         access.require(permission); JsonNode stored=db.get(collection,id);access.accessItem(stored);
         if (input.has("id") || input.has("organizationId"))
@@ -51,6 +54,7 @@ public class RecordsService {
         audit("updated",collection,id,stored.path("organizationId").asText());
         return safe(updated);
     }
+    @Transactional
     public void delete(String collection,String id,String permission) {
         access.require(permission); JsonNode stored=db.get(collection,id);access.accessItem(stored);
         db.delete(collection,id);
