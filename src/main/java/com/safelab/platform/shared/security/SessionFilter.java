@@ -16,10 +16,10 @@ import java.util.Map;
 
 @Component
 public class SessionFilter extends OncePerRequestFilter {
-    private final MockSessionService auth;
+    private final AuthService auth;
     private final ObjectMapper mapper;
     private final ApiMessageTranslator translations;
-    public SessionFilter(MockSessionService auth, ObjectMapper mapper, ApiMessageTranslator translations) { this.auth = auth; this.mapper = mapper; this.translations = translations; }
+    public SessionFilter(AuthService auth, ObjectMapper mapper, ApiMessageTranslator translations) { this.auth = auth; this.mapper = mapper; this.translations = translations; }
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();

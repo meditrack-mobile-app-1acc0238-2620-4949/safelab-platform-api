@@ -3,7 +3,7 @@ package com.safelab.platform.reportinganalytics.presentation;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.safelab.platform.shared.application.RecordsService;
-import com.safelab.platform.shared.infrastructure.JsonServerGateway;
+import com.safelab.platform.shared.domain.DataGateway;
 import io.swagger.v3.oas.annotations.Operation;
 import com.safelab.platform.reportinganalytics.presentation.dto.ReportCreateRequest;
 import jakarta.validation.Valid;
@@ -17,8 +17,8 @@ import java.time.Instant;
 @RequestMapping("/api/v1/reportinganalytics")
 @Tag(name="07. Reporting & Analytics")
 public class ReportingAnalyticsController {
-    private final RecordsService r;private final JsonServerGateway db;
-    public ReportingAnalyticsController(RecordsService r,JsonServerGateway db){this.r=r;this.db=db;}
+    private final RecordsService r;private final DataGateway db;
+    public ReportingAnalyticsController(RecordsService r,DataGateway db){this.r=r;this.db=db;}
     @GetMapping("/reports") @Operation(summary="Reportes disponibles")
     public ArrayNode reports(){return r.list("reports","reports.view");}
     @GetMapping("/summary") @Operation(summary="Resumen de actividad y cobertura")

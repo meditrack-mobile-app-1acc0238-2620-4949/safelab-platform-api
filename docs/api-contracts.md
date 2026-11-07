@@ -1,15 +1,17 @@
-# SafeLab REST API — v1.0.0
+> **Actualización v2.0.0:** el origen de datos es PostgreSQL (no JSON Server). Los contratos REST y los cuerpos de solicitud siguen siendo compatibles con la v1. Para configurar PostgreSQL revisa [README](../README.md) y [Pruebas PostgreSQL](postgresql-smoke-tests.md).
 
-Base URL: `http://localhost:8080/api/v1` — JSON Server: `http://127.0.0.1:3000` (internal local data source).
+# SafeLab REST API — v2.0.0
+
+Base URL PostgreSQL: `http://localhost:8080/api/v1`; en modo JSON Server: `http://localhost:8081/api/v1`.
 
 ## HTTP conventions
 
 - All private operations: `Authorization: Bearer <accessToken>` from `POST /auth/login`.
 - `GET`: **200 OK** (list or detail). `POST`: **201 Created** for new records, **200 OK** for simulated actions. `PATCH`/`PUT`: **200 OK**. `DELETE`: **204 No Content**.
-- Errors: **400** invalid JSON/fields, **401** unauthenticated, **403** forbidden (role/tenant/resource), **404** absent, **409** business conflict, **503** JSON Server unavailable, **500** unexpected.
+- Errors: **400** invalid JSON/fields, **401** unauthenticated, **403** forbidden (role/tenant/resource), **404** absent, **409** business conflict, **503** fuente de datos temporalmente no disponible, **500** unexpected.
 - Errors always use `{timestamp,status,code,message,path,fieldErrors}`. A `fieldErrors` map contains bean-validation messages.
 - IDs and organization scopes are derived from the logged-in user. Never trust client-supplied `organizationId` for company users.
-- Mock identity: **ephemeral tokens** in memory, 1 hour; test passwords are present in local `data/db.json` only. Do not deploy this mode.
+- Sesiones: **tokens opacos de 1 hora**; únicamente sus hashes SHA-256 se guardan en `auth_sessions`. Contraseñas BCrypt en PostgreSQL. No desplegar todavía sin protección de producción.
 
 ## API grouping — 12 Bounded Contexts
 
@@ -43,14 +45,14 @@ See Swagger UI for exact DTO schemas, required fields and interactive examples.
 }
 ```
 
-## Intentional v1 limits
+## Persistencia en v2 y limitaciones académicas
 
-- JSON Server has **no relational constraints or multi-request transactions** (including the appended audit record). Validate payloads in Spring; scenarios requiring atomic seat reservation, payment approval, unique identifiers and permission changes will be revisited in v2/PostgreSQL.
-- Registration produces **pending** users; there are no real emails, domain ownership verification or payment processing.
-- Command execution and report generation are simulated; no IoT actuation, PDF file or email is sent.
-- Swagger endpoints expose test operations only; JSON Server must stay bound to `127.0.0.1`.
-- `permissionAssignments` is the v1 array for saved effective permissions; the original `permissionOverrides` object stays in the seed for compatibility with prior frontend mocks.
-
+- JSON Server se conserva como perfil `jsonserver`; por defecto las operaciones usan PostgreSQL/JPA.
+- Flyway aplica V1 (esquema), V2 (restricciones) y V3 (RLS y GRANT) una sola vez; el seed ficticio es explícito y separado.
+- `@Transactional` agrupa escrituras relacionadas, incluyendo el registro de auditoría.
+- Los permisos RBAC siguen gestionados por el backend; los tokens de sesión se guardan hasheados en PostgreSQL.
+- La suscripción, las invitaciones, el envío de emails, los pagos y los comandos físicos aún no son servicios de producción.
+- Los identificadores de Web/Mobile se preservan para la integración prevista en v2.5.0.
 
 ## Documentación OpenAPI en dos idiomas
 
@@ -60,5 +62,5 @@ See Swagger UI for exact DTO schemas, required fields and interactive examples.
 - Todas las respuestas de error conservan el contrato `{timestamp,status,code,message,path,fieldErrors}`.
 - Para el idioma de `message` envía `Accept-Language: en` o `Accept-Language: es`.
 - Los códigos HTTP exitosos documentan `200`, `201` o `204` según la operación.
-- `400`, `401`, `403`, `404`, `409`, `500`, `502`, `503` se documentan donde correspondan.
+- `400`, `401`, `403`, `404`, `409`, `500`, `503` se documentan donde correspondan.
 - Los componentes de Swagger UI (`Try it out`, `Execute`) mantienen sus textos nativos.

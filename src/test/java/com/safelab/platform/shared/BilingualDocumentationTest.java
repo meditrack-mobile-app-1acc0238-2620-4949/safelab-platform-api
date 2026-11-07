@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /** Pruebas sin JSON Server: la documentación y el filtro no dependen del seed. */
+@org.springframework.test.context.ActiveProfiles("jsonserver")
 @SpringBootTest
 @AutoConfigureMockMvc
 class BilingualDocumentationTest {

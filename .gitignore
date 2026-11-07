@@ -1,7 +1,76 @@
+# ============================================================
+# SafeLab Platform API - Java / Spring Boot / PostgreSQL
+# ============================================================
+
+# Java / Maven compiled files
 target/
-node_modules/
-.env
+*.class
+*.jar
+*.war
+*.ear
+
+# IntelliJ IDEA
 .idea/
 *.iml
-*.log
+*.ipr
+*.iws
+.run/
+
+# VS Code local settings
+.vscode/
+
+# Java crash reports and diagnostics
+hs_err_pid*
+replay_pid*
+*.hprof
+java_pid*
+
+# Local Spring Boot configurations
+application-local.properties
+application-secrets.properties
+application-private.properties
+application-local.yml
+application-secrets.yml
+application-private.yml
+
+# Local environment and credential files
+*.env.local
+*.credentials
+*.secret
+*.secrets
+.pgpass
+pgpass.conf
+
+# Private keys and keystores
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# PostgreSQL database exports and backups
+*.backup
+*.dump
+*.pgdump
+*.sql.gz
+*.sql.backup
+
+# JSON Server runtime data
+data/runtime/
+data/*.runtime.json
+data/*.local.json
+
+# Temporary and generated files
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+
+# Operating system files
 .DS_Store
+Thumbs.db
+desktop.ini

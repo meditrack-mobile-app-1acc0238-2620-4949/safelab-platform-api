@@ -7,6 +7,7 @@ import com.safelab.platform.shared.domain.ApiException;
 import com.safelab.platform.shared.infrastructure.JsonServerGateway;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -18,18 +19,23 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /** Sesiones efímeras SOLO para practicar API v1; NO equivalen a seguridad de producción. */
 @Service
-public class MockSessionService {
+@org.springframework.context.annotation.Profile("jsonserver")
+public class MockSessionService implements AuthService {
     public record Session(String userId, Instant expiresAt) { }
     private final Map<String, Session> sessions = new ConcurrentHashMap<>();
     private final JsonServerGateway data;
+    private final PasswordEncoder encoder;
     private final SecureRandom random = new SecureRandom();
-    public MockSessionService(JsonServerGateway data) { this.data = data; }
+    public MockSessionService(JsonServerGateway data, PasswordEncoder encoder) { this.data = data; this.encoder = encoder; }
 
+    private boolean matchesPassword(String raw, String stored) {
+        return stored.startsWith("$2") ? encoder.matches(raw, stored) : raw.equals(stored);
+    }
     public ObjectNode authenticate(String identifier, String password) {
         JsonNode user = null;
         for (JsonNode u : data.all("users")) {
             if ((identifier.equalsIgnoreCase(u.path("email").asText()) || identifier.equals(u.path("username").asText()))
-                && password.equals(u.path("password").asText())) { user = u; break; }
+                && matchesPassword(password, u.path("password").asText())) { user = u; break; }
         }
         if (user == null) throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Correo, usuario o contraseña incorrectos.");
         if (!"active".equalsIgnoreCase(user.path("status").asText()))

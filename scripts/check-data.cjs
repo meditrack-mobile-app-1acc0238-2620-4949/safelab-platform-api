@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
-const data = JSON.parse(fs.readFileSync('data/db.json','utf8'));
+const data = JSON.parse(fs.readFileSync('data/db.seed.json','utf8'));
 const catalog = JSON.parse(fs.readFileSync('data/permission-catalog.json','utf8'));
 const counts = {organizations:3,users:19,sensors:12,assets:10,subscriptions:3};
 for (const [key,expected] of Object.entries(counts)) assert.equal(data[key].length,expected,`${key} count mismatch`);
@@ -16,4 +16,4 @@ assert.equal(new Set(permissions).size,21);
 for (const [role,values] of Object.entries(catalog.defaults)) for(const permission of values)
   assert.ok(permissions.includes(permission),`invalid permission ${role}/${permission}`);
 for(const subscription of data.subscriptions) assert.ok(subscription.includedSeats>=10);
-console.log('SafeLab v1 fixtures OK: 3 organizations, 19 users, 12 sensors, 10 assets, 21 permissions.');
+console.log('SafeLab v2 demo fixtures OK: 3 organizations, 19 users, 12 sensors, 10 assets, 21 permissions.');

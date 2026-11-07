@@ -3,7 +3,7 @@ package com.safelab.platform.sensormonitoring.presentation;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.safelab.platform.shared.application.RecordsService;
-import com.safelab.platform.shared.infrastructure.JsonServerGateway;
+import com.safelab.platform.shared.domain.DataGateway;
 import com.safelab.platform.shared.security.AccessRules;
 import com.safelab.platform.sensormonitoring.presentation.dto.SensorReadingRequest;
 import com.safelab.platform.sensormonitoring.presentation.dto.SensorCreateRequest;
@@ -20,8 +20,8 @@ import java.time.Instant;
 @RequestMapping("/api/v1/sensormonitoring")
 @Tag(name="03. Sensor & Telemetry Monitoring")
 public class SensorMonitoringController {
-    private final RecordsService records;private final JsonServerGateway db;private final AccessRules access;
-    public SensorMonitoringController(RecordsService r,JsonServerGateway d,AccessRules a){records=r;db=d;access=a;}
+    private final RecordsService records;private final DataGateway db;private final AccessRules access;
+    public SensorMonitoringController(RecordsService r,DataGateway d,AccessRules a){records=r;db=d;access=a;}
     @GetMapping("/sensors") @Operation(summary="Consultar sensores y lecturas de recursos asignados")
     public ArrayNode list(){return records.list("sensors","sensors.view");}
     @GetMapping("/sensors/{id}") @Operation(summary="Ver detalle de sensor")

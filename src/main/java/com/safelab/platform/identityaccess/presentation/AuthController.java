@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.safelab.platform.identityaccess.presentation.dto.*;
 import com.safelab.platform.shared.domain.ApiException;
-import com.safelab.platform.shared.infrastructure.JsonServerGateway;
-import com.safelab.platform.shared.security.MockSessionService;
+import com.safelab.platform.shared.domain.DataGateway;
+import com.safelab.platform.shared.security.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,21 +13,26 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/v1/auth")
-@Tag(name="01. Identity & Access Management",description="Inicio de sesión y registro simulado (sin enviar emails ni cobrar pagos)")
+@Tag(name="01. Identity & Access Management",description="Sesiones persistidas, registro local y permisos empresariales. Sin envío de correos ni pagos.")
 public class AuthController {
-    private final MockSessionService sessions;
-    private final JsonServerGateway db;
+    private final AuthService sessions;
+    private final DataGateway db;
+    private final PasswordEncoder passwordEncoder;
     private static final Pattern PASSWORD = Pattern.compile("^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[@%&$]).{10,}$");
-    public AuthController(MockSessionService sessions,JsonServerGateway db){this.sessions=sessions;this.db=db;}
+    public AuthController(AuthService sessions,DataGateway db,PasswordEncoder passwordEncoder){
+        this.sessions=sessions;this.db=db;this.passwordEncoder=passwordEncoder;
+    }
     @PostMapping("/login")
     @SecurityRequirements
-    @Operation(summary="Iniciar sesión con correo o username",description="Devuelve un token de sesión temporal para usar en Authorize de Swagger.")
+    @Operation(summary="Iniciar sesión con correo o username",description="Devuelve un token temporal de sesión persistida para usar en Authorize de Swagger.")
     public ObjectNode login(@Valid @RequestBody LoginRequest request){return sessions.authenticate(request.identifier().trim(),request.password());}
 
     @GetMapping("/me")
@@ -41,6 +46,7 @@ public class AuthController {
     @PostMapping("/register/company")
     @SecurityRequirements
     @Operation(summary="Registrar una empresa y su primer gerente",description="La solicitud queda pendiente de validación empresarial y pago: no activa el acceso ni envía correos.")
+    @Transactional
     public ResponseEntity<ObjectNode> registerCompany(@Valid @RequestBody CompanyRegistrationRequest request) {
         checkPassword(request.password());
         for(JsonNode item:db.all("organizations"))
@@ -52,7 +58,7 @@ public class AuthController {
         company.put("managerId",uid);company.put("status","pending_corporate_verification");company.set("facilityIds",db.array());
         db.create("organizations",company);
         ObjectNode user=db.object();user.put("id",uid);user.put("username",numericUsername());user.put("email",request.email().toLowerCase());
-        user.put("password",request.password());user.put("firstName",request.firstName().trim());user.put("lastName",request.lastName().trim());
+        user.put("password",passwordEncoder.encode(request.password()));user.put("firstName",request.firstName().trim());user.put("lastName",request.lastName().trim());
         user.put("fullName",request.firstName().trim()+" "+request.lastName().trim());user.put("phone",request.phone());user.put("role","organizationAdmin");
         user.put("status","pending_corporate_verification");user.put("organizationId",orgId);user.put("organization",request.companyName().trim());
         user.put("segment",request.segment());user.set("facilityIds",db.array());user.set("resourceIds",db.array());
@@ -65,6 +71,7 @@ public class AuthController {
     @PostMapping("/register/invitation")
     @SecurityRequirements
     @Operation(summary="Registrarse con una invitación activa",description="No requiere pago del empleado. El acceso queda pendiente de confirmar su correo.")
+    @Transactional
     public ResponseEntity<ObjectNode> registerInvited(@Valid @RequestBody InvitationRegisterRequest request){
         checkPassword(request.password());
         JsonNode invitation=null;
@@ -75,7 +82,7 @@ public class AuthController {
             throw new ApiException(HttpStatus.CONFLICT,"INVITATION_EXPIRED","La invitación ha expirado.");
         String email=invitation.path("email").asText();checkEmail(email);
         ObjectNode user=db.object();user.put("id",UUID.randomUUID().toString());user.put("username",numericUsername());
-        user.put("email",email);user.put("password",request.password());user.put("firstName",request.firstName().trim());
+        user.put("email",email);user.put("password",passwordEncoder.encode(request.password()));user.put("firstName",request.firstName().trim());
         user.put("lastName",request.lastName().trim());user.put("fullName",request.firstName().trim()+" "+request.lastName().trim());
         user.put("phone",request.phone());user.put("organizationId",invitation.path("organizationId").asText());
         user.put("role",invitation.path("role").asText());user.put("status","pending_email_verification");
@@ -96,7 +103,7 @@ public class AuthController {
     private String numericUsername(){
         java.security.SecureRandom random=new java.security.SecureRandom();
         for(int attempts=0;attempts<20;attempts++){
-            StringBuilder id=new StringBuilder();for(int i=0;i<18;i++)id.append(random.nextInt(10));
+            StringBuilder id=new StringBuilder();id.append(1+random.nextInt(9));for(int i=1;i<18;i++)id.append(random.nextInt(10));
             boolean duplicate=false;for(JsonNode u:db.all("users"))if(id.toString().equals(u.path("username").asText()))duplicate=true;
             if(!duplicate)return id.toString();
         }

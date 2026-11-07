@@ -13,9 +13,10 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 import java.util.regex.Pattern;
 
-/** Único punto de conexión a JSON Server. En v2 se sustituye por un adaptador PostgreSQL. */
+/** Único punto de conexión a JSON Server. En v2 permanece como modo alternativo de demostracion. */
 @Component
-public class JsonServerGateway {
+@org.springframework.context.annotation.Profile("jsonserver")
+public class JsonServerGateway implements com.safelab.platform.shared.domain.DataGateway {
     private static final Pattern SAFE_PATH = Pattern.compile("[a-zA-Z0-9_-]+");
     private final RestClient http;
     private final ObjectMapper mapper;
@@ -28,8 +29,8 @@ public class JsonServerGateway {
     public ArrayNode array() { return mapper.createArrayNode(); }
 
     public JsonNode get(String collection) { return read(() -> http.get().uri("/" + safe(collection)).retrieve().body(JsonNode.class)); }
-    public JsonNode get(String collection, String id) {
-        return read(() -> http.get().uri("/" + safe(collection) + "/" + safe(id)).retrieve().body(JsonNode.class));
+    public ObjectNode get(String collection, String id) {
+        return (ObjectNode)read(() -> http.get().uri("/" + safe(collection) + "/" + safe(id)).retrieve().body(JsonNode.class));
     }
     public ArrayNode all(String collection) {
         JsonNode value = get(collection);
