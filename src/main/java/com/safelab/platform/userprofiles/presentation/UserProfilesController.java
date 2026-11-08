@@ -3,6 +3,8 @@ package com.safelab.platform.userprofiles.presentation;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.safelab.platform.shared.domain.ApiException;
 import com.safelab.platform.shared.domain.DataGateway;
+import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.transaction.annotation.Transactional;
 import com.safelab.platform.shared.security.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +24,7 @@ public class UserProfilesController {
     @GetMapping("/me") @Operation(summary="Ver mi perfil")
     public ObjectNode profile(){return session.sanitized(session.current());}
     @PatchMapping("/me") @Operation(summary="Actualizar datos personales editables (sin cambiar username ni rol)")
+    @Transactional
     public ObjectNode update(@RequestBody ObjectNode changes){
         var fields = changes.fields();
         while(fields.hasNext()){ var field = fields.next();
@@ -36,7 +39,19 @@ public class UserProfilesController {
         ObjectNode patch=changes.deepCopy();ObjectNode user=(ObjectNode)session.current();
         String first=patch.path("firstName").asText(user.path("firstName").asText());
         String last=patch.path("lastName").asText(user.path("lastName").asText());
-        patch.put("fullName",first+" "+last);
-        return session.sanitized(db.patch("users",user.path("id").asText(),patch));
+        String fullName=first+" "+last;
+        patch.put("fullName",fullName);
+        ObjectNode updated=db.patch("users",user.path("id").asText(),patch);
+        // Etiqueta derivada: los nombres cambian, el vinculo estable siempre es responsibleUserId.
+        if (!fullName.equals(user.path("fullName").asText()) && user.hasNonNull("organizationId")) {
+            for(JsonNode asset:db.all("assets")) {
+                if (user.path("id").asText().equals(asset.path("responsibleUserId").asText())
+                        && user.path("organizationId").asText().equals(asset.path("organizationId").asText())) {
+                    ObjectNode aPatch=db.object();aPatch.put("responsible",fullName);
+                    db.patch("assets",asset.path("id").asText(),aPatch);
+                }
+            }
+        }
+        return session.sanitized(updated);
     }
 }

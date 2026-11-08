@@ -11,4 +11,7 @@ public record AssetCreateRequest(
     @NotBlank @Schema(example="fac-central") String facilityId,
     @Schema(example="Cold room") String storageUnit,
     @Schema(example="Laboratory 1") String location,
-    @Schema(example="Maintenance Technician") String responsible) { }
+    @Schema(example="Maintenance Technician", description="Texto legado; para asignar acceso use responsibleUserId") String responsible,
+    @Schema(description="ID real del empleado responsable, dentro de la misma empresa y sede", example="00000000-0000-4000-8000-000000000102") String responsibleUserId,
+    @Schema(example="2026-11-07") String lastInspection,
+    @Schema(example="compliant") String status) { }
