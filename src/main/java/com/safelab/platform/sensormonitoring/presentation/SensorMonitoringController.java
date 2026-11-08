@@ -37,6 +37,24 @@ public class SensorMonitoringController {
     }
     @PatchMapping("/sensors/{id}") @Operation(summary="Configurar sensor")
     public ObjectNode update(@PathVariable String id,@RequestBody ObjectNode body){return records.patch("sensors",id,body,"sensors.configure");}
+    @DeleteMapping("/sensors/{id}") @Operation(summary="Eliminar sensor no vinculado a otros registros")
+    public ResponseEntity<Void> delete(@PathVariable String id) {
+        access.require("sensors.configure");
+        var existing=records.get("sensors",id,"sensors.view");
+        String[][] dependencies = {{"alerts", "sensorId"}, {"incidents", "relatedSensorId"},
+            {"complianceRules", "sensorId"}, {"complianceEvaluations", "sensorId"},
+            {"actuators", "linkedSensorId"}};
+        for (String[] dependency : dependencies) {
+            for (var linked : db.all(dependency[0])) {
+                if (id.equals(linked.path(dependency[1]).asText()) &&
+                    existing.path("organizationId").asText().equals(linked.path("organizationId").asText()))
+                    throw new ApiException(HttpStatus.CONFLICT,"SENSOR_IN_USE",
+                        "El sensor tiene registros vinculados ("+dependency[0]+"). Desvincúlalos antes de eliminar.");
+            }
+        }
+        records.delete("sensors", id, "sensors.configure");
+        return ResponseEntity.noContent().build();
+    }
     @PatchMapping("/sensors/{id}/reading") @Operation(summary="Registrar una lectura y calcular si está fuera de rango")
     public ObjectNode reading(@PathVariable String id,@Valid @RequestBody SensorReadingRequest request){
         var sensor=records.get("sensors",id,"sensors.configure");

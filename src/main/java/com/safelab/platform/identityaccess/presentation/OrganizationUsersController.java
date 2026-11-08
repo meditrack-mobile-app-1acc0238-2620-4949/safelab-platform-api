@@ -108,6 +108,25 @@ public class OrganizationUsersController {
         ObjectNode item=db.object();item.put("id",UUID.randomUUID().toString());item.put("userId",userId);item.put("organizationId",orgId);
         item.set("permissions",array);return db.create("permissionAssignments",item);
     }
+    @PatchMapping("/organizations/{orgId}/users/{userId}/assignments")
+    @Operation(summary="Actualizar sedes y recursos asignados a un empleado")
+    @Transactional
+    public ObjectNode assignments(@PathVariable String orgId,@PathVariable String userId,@RequestBody ObjectNode payload){
+        access.managerOnly(); access.sameOrg(orgId);
+        JsonNode user = member(orgId,userId);
+        if ("organizationAdmin".equals(user.path("role").asText())) access.denied();
+        if (!payload.path("facilityIds").isArray() || !payload.path("resourceIds").isArray())
+            throw new ApiException(HttpStatus.BAD_REQUEST,"INVALID_ASSIGNMENTS","Se requieren listas facilityIds y resourceIds.");
+        java.util.List<String> facilities = new java.util.ArrayList<>();
+        java.util.List<String> resources = new java.util.ArrayList<>();
+        payload.path("facilityIds").forEach(item -> facilities.add(item.asText()));
+        payload.path("resourceIds").forEach(item -> resources.add(item.asText()));
+        validateResources(orgId,facilities,resources);
+        ObjectNode patch=db.object(); patch.set("facilityIds",payload.get("facilityIds"));
+        patch.set("resourceIds",payload.get("resourceIds"));
+        return session.sanitized(db.patch("users",userId,patch));
+    }
+
     private JsonNode member(String orgId,String userId){JsonNode u=db.get("users",userId);if(!orgId.equals(u.path("organizationId").asText()))access.denied();return u;}
     private String newCode(){SecureRandom rand=new SecureRandom();String chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         StringBuilder s=new StringBuilder();for(int i=0;i<24;i++)s.append(chars.charAt(rand.nextInt(chars.length())));return s.toString();}

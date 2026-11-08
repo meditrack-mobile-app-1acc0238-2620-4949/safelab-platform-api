@@ -39,6 +39,9 @@ public class AssetRecord extends StoredEntity {
     @Column(name = "responsible", columnDefinition = "text")
     public String responsible;
 
+    @Column(name = "responsible_user_id", columnDefinition = "text")
+    public String responsibleUserId;
+
     @Column(name = "status", columnDefinition = "text")
     public String status;
 
