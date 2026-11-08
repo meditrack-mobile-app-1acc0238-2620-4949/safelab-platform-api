@@ -32,7 +32,12 @@ public class AccessRules {
     }
     public void require(String permission) { if (!allowed(permission)) denied(); }
     public boolean allowed(String permission) {
-        if (platform() || manager()) return true;
+        if (platform()) return true;
+        if (manager()) {
+            for (JsonNode granted : catalog.path("manager"))
+                if (permission.equals(granted.asText())) return true;
+            return "billing.read".equals(permission);
+        }
         String userId = user().path("id").asText();
         for (JsonNode entry : data.all("permissionAssignments")) {
             if (userId.equals(entry.path("userId").asText())) {
@@ -50,7 +55,14 @@ public class AccessRules {
         if (!item.hasNonNull("organizationId")) return false;
         if (manager()) return true;
         JsonNode ids = user().path("resourceIds");
-        if (!ids.isArray() || ids.size()==0) return true; // coordinadores con alcance global en su empresa
+        if (!ids.isArray() || ids.size()==0) {
+            String role = user().path("role").asText();
+            boolean limitedRole = Set.of("labTechnician", "pharmaTechnician", "maintenanceOperator").contains(role);
+            boolean resourceRecord = isResource(item) || item.has("sensorId") || item.has("assetId") ||
+                item.has("equipmentId") || item.has("actuatorId") || item.has("relatedSensorId") ||
+                item.has("relatedAssetId") || item.has("linkedSensorId") || item.has("ruleId");
+            return !limitedRole || !resourceRecord;
+        }
         String id = item.path("id").asText();
         String asset = item.path("assetId").asText();
         String sensor = item.path("sensorId").asText();
