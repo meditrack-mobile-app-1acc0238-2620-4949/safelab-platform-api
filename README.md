@@ -1,3 +1,5 @@
+> **Preparación de despliegue AV2 v2.5.1:** consultar [`docs/DEPLOY_RENDER_NEON_AV2.md`](docs/DEPLOY_RENDER_NEON_AV2.md). Este paquete no implica que Render o Neon ya estén configurados.
+
 # SafeLab v2.5.0 RC3 — Sincronización móvil y paridad API (2026-11-07)
 
 > **Candidata de validación local.** No crear todavía un tag estable: primero aprobar `npm run build`, compilación Android, tests Maven y pruebas reales PostgreSQL.

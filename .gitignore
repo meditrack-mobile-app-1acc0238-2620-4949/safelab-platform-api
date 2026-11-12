@@ -34,6 +34,7 @@ application-secrets.yml
 application-private.yml
 
 # Local environment and credential files
+.env
 *.env.local
 *.credentials
 *.secret
