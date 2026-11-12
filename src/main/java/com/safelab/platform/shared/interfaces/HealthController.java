@@ -20,6 +20,6 @@ public class HealthController {
     @Operation(summary="Verificar API y fuente de datos (sin autenticacion)")
     public Map<String,Object> check() {
         data.all("organizations");
-        return Map.of("status", "UP", "storage", mode, "version", "2.0.0");
+        return Map.of("status", "UP", "storage", mode, "version", "2.5.1");
     }
 }

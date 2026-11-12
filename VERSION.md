@@ -1,3 +1,13 @@
+# SafeLab Backend v2.5.1 — Preparación de despliegue Render + Neon (2026-11-12)
+
+- Compilación Java 21 mediante Docker multietapa y ejecución non-root.
+- CORS parametrizable, Swagger con servidor relativo, versión alineada en Maven y health.
+- Instrucciones de roles Neon y configuración privada de Render en `docs/DEPLOY_RENDER_NEON_AV2.md`.
+- Sin cambios en endpoints, reglas de negocio, datos, ni migraciones Flyway V1–V4.
+- **Estado:** paquete preparado; falta prueba Maven/Docker y despliegue real con Neon.
+
+---
+
 # SafeLab v2.5.0 RC3 — API local (sincronización y paridad)
 
 Validación pendiente. Conservar tags anteriores. V1–V4 Flyway inmutables.

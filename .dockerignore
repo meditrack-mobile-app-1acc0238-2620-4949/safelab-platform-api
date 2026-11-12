@@ -1,0 +1,22 @@
+# Build context reducido; nunca incluir secretos ni archivos de datos privados
+.git
+.github
+.idea
+.vscode
+target
+*.jar
+*.war
+.env
+.env.*
+**/*.pem
+**/*.key
+**/*.p12
+**/*.jks
+*.dump
+*.backup
+*.pgdump
+data/runtime
+docs
+scripts
+README.md
+VERSION.md
